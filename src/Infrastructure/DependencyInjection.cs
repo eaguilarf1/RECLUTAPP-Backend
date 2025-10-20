@@ -9,18 +9,19 @@ namespace Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services, IConfiguration config)
     {
-        var cs = config.GetConnectionString("DefaultConnection");
-        services.AddDbContext<AppDbContext>(opt =>
+        var cs = config.GetConnectionString("SqlServer")
+                 ?? throw new InvalidOperationException("Missing 'SqlServer' connection string.");
+
+        services.AddDbContext<AppDbContext>(o =>
         {
-            if (string.IsNullOrWhiteSpace(cs))
-                opt.UseInMemoryDatabase("reclutapp");
-            else
-                opt.UseSqlServer(cs);
+            o.UseSqlServer(cs, sql => sql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
 
         services.AddScoped<IVacancyRepository, VacancyRepository>();
+
         return services;
     }
 }

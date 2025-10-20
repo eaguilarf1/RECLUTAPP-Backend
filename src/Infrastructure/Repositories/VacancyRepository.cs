@@ -5,35 +5,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories;
 
-public class VacancyRepository : IVacancyRepository
+public class VacancyRepository(AppDbContext db) : IVacancyRepository
 {
-    private readonly AppDbContext _db;
-    public VacancyRepository(AppDbContext db) => _db = db;
+    public async Task<List<Vacancy>> GetAllAsync(CancellationToken ct = default)
+        => await db.Vacancies.OrderByDescending(v => v.PublishedOn).ToListAsync(ct);
 
-    public Task<List<Vacancy>> ListAsync(CancellationToken ct = default) =>
-        _db.Vacancies.AsNoTracking().OrderByDescending(v => v.PublishedOn).ToListAsync(ct);
+    public async Task<Vacancy?> GetAsync(Guid id, CancellationToken ct = default)
+        => await db.Vacancies.FirstOrDefaultAsync(v => v.Id == id, ct);
 
-    public Task<Vacancy?> GetAsync(Guid id, CancellationToken ct = default) =>
-        _db.Vacancies.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, ct);
-
-    public async Task AddAsync(Vacancy v, CancellationToken ct = default)
+    public async Task<Vacancy> AddAsync(Vacancy vacancy, CancellationToken ct = default)
     {
-        if (v.Id == Guid.Empty) v.Id = Guid.NewGuid();
-        await _db.Vacancies.AddAsync(v, ct);
-        await _db.SaveChangesAsync(ct);
+        db.Vacancies.Add(vacancy);
+        await db.SaveChangesAsync(ct);
+        return vacancy;
     }
 
-    public async Task UpdateAsync(Vacancy v, CancellationToken ct = default)
+    public async Task UpdateAsync(Vacancy vacancy, CancellationToken ct = default)
     {
-        _db.Vacancies.Update(v);
-        await _db.SaveChangesAsync(ct);
+        db.Vacancies.Update(vacancy);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var e = await _db.Vacancies.FirstOrDefaultAsync(x => x.Id == id, ct);
-        if (e is null) return;
-        _db.Vacancies.Remove(e);
-        await _db.SaveChangesAsync(ct);
+        var v = await db.Vacancies.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (v is null) return;
+        db.Vacancies.Remove(v);
+        await db.SaveChangesAsync(ct);
     }
 }
