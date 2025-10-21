@@ -21,6 +21,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IVacancyRepository, VacancyRepository>();
+        services.AddScoped<IUserRepository, UserRepository>(); // ← NUEVO
 
         return services;
     }
