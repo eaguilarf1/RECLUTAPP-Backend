@@ -13,12 +13,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         modelBuilder.Entity<Vacancy>(b =>
         {
-            b.ToTable("Vacancies");
-            b.HasKey(v => v.Id);
-            b.Property(v => v.Title).HasMaxLength(200).IsRequired();
-            b.Property(v => v.Recruiter).HasMaxLength(150).IsRequired();
-            b.Property(v => v.PublishedOn).IsRequired();
-            b.HasIndex(v => v.PublishedOn);
+          b.ToTable("Vacancies");
+          b.HasKey(v => v.Id);
+          b.Property(v => v.Title).HasMaxLength(200).IsRequired();
+          b.Property(v => v.Recruiter).HasMaxLength(150).IsRequired();
+          b.Property(v => v.PublishedOn).IsRequired();
+          b.Property(v => v.Description).HasMaxLength(4000);
+          b.Property(v => v.Location).HasMaxLength(150);
+          b.Property(v => v.Status).IsRequired();
+          b.HasIndex(v => v.PublishedOn);
+          b.HasIndex(v => v.Status);
         });
 
         modelBuilder.Entity<User>(b =>
