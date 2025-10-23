@@ -1,60 +1,79 @@
 using Infrastructure;
 using Application.Abstractions.Repositories;
 using Domain.Vacancies;
-using Api;
-using Domain.Users;
-
-// ...
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Registro de DbContext + repos vía extensión de Infrastructure
+// DbContext + repos 
 builder.Services.AddInfrastructure(builder.Configuration);
 
-const string SpaCorsPolicy = "SpaCorsPolicy";
-
-builder.Services.AddCors(options =>
+// ---- CORS ----
+const string CorsPolicy = "frontend";
+builder.Services.AddCors(opt =>
 {
-    options.AddPolicy(name: SpaCorsPolicy, policy =>
-        policy
-            .WithOrigins("http://localhost:4200") // URL del frontend Angular
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-    );
+    opt.AddPolicy(CorsPolicy, p => p
+        .WithOrigins("http://localhost:4200")
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 });
 
 var app = builder.Build();
 
-app.UseCors(SpaCorsPolicy);
+// Middleware
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseCors(CorsPolicy);
 
 // ========== Vacancies ==========
 
 app.MapGet("/vacancies", async (
-    int page, int pageSize, string? search, VacancyStatus? status,
-    IVacancyRepository repo, CancellationToken ct) =>
+    [FromServices] IVacancyRepository repo,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 12,
+    [FromQuery] string? search = null,
+    [FromQuery] VacancyStatus? status = null,
+    CancellationToken ct = default
+) =>
 {
     page = page <= 0 ? 1 : page;
     pageSize = pageSize <= 0 || pageSize > 100 ? 12 : pageSize;
 
     var (items, total) = await repo.GetPagedAsync(page, pageSize, search, status, ct);
-    var result = new VacanciesPagedResponse(page, pageSize, total, items.Select(x => x.ToItem()).ToList());
+
+    var result = new VacanciesPagedResponse(
+        Page: page,
+        PageSize: pageSize,
+        Total: total,
+        Items: items.Select(x => x.ToItem()).ToList()
+    );
+
     return Results.Ok(result);
 });
 
-app.MapGet("/vacancies/{id:guid}", async (Guid id, IVacancyRepository repo, CancellationToken ct) =>
+app.MapGet("/vacancies/{id:guid}", async (
+    Guid id,
+    [FromServices] IVacancyRepository repo,
+    CancellationToken ct
+) =>
 {
     var v = await repo.GetAsync(id, ct);
     return v is null ? Results.NotFound() : Results.Ok(v.ToItem());
 });
 
-app.MapPost("/vacancies", async (VacancyCreateDto dto, IVacancyRepository repo, CancellationToken ct) =>
+app.MapPost("/vacancies", async (
+    [FromBody] VacancyCreateDto dto,
+    [FromServices] IVacancyRepository repo,
+    CancellationToken ct
+) =>
 {
     if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.Recruiter))
         return Results.BadRequest("Title and Recruiter are required.");
+
+    var defaultStatus = Enum.GetValues<VacancyStatus>()[0];
 
     var v = new Vacancy
     {
@@ -62,15 +81,20 @@ app.MapPost("/vacancies", async (VacancyCreateDto dto, IVacancyRepository repo, 
         Recruiter = dto.Recruiter.Trim(),
         Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
         Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim(),
-        Status = dto.Status,
-        PublishedOn = DateTime.UtcNow
+        Status = dto.Status ?? defaultStatus,
+        PublishedOn = dto.PublishedOn?.ToUniversalTime() ?? DateTime.UtcNow
     };
 
     var created = await repo.AddAsync(v, ct);
     return Results.Created($"/vacancies/{created.Id}", created.ToItem());
 });
 
-app.MapPut("/vacancies/{id:guid}", async (Guid id, VacancyUpdateDto dto, IVacancyRepository repo, CancellationToken ct) =>
+app.MapPut("/vacancies/{id:guid}", async (
+    Guid id,
+    [FromBody] VacancyUpdateDto dto,
+    [FromServices] IVacancyRepository repo,
+    CancellationToken ct
+) =>
 {
     var current = await repo.GetAsync(id, ct);
     if (current is null) return Results.NotFound();
@@ -79,17 +103,79 @@ app.MapPut("/vacancies/{id:guid}", async (Guid id, VacancyUpdateDto dto, IVacanc
     current.Recruiter = dto.Recruiter.Trim();
     current.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
     current.Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
-    current.Status = dto.Status;
+    if (dto.Status.HasValue) current.Status = dto.Status.Value;
+    if (dto.PublishedOn.HasValue)
+    current.PublishedOn = dto.PublishedOn.Value.ToUniversalTime();  
+
 
     await repo.UpdateAsync(current, ct);
     return Results.NoContent();
 });
 
-app.MapDelete("/vacancies/{id:guid}", async (Guid id, IVacancyRepository repo, CancellationToken ct) =>
-
+app.MapDelete("/vacancies/{id:guid}", async (
+    Guid id,
+    [FromServices] IVacancyRepository repo,
+    CancellationToken ct
+) =>
 {
     await repo.DeleteAsync(id, ct);
     return Results.NoContent();
 });
 
 app.Run();
+
+
+//   DTOs
+
+public record VacancyItem(
+    Guid Id,
+    string Title,
+    string Recruiter,
+    DateTime PublishedOn,
+    string? Description,
+    string? Location,
+    VacancyStatus Status
+);
+
+public record VacanciesPagedResponse(
+    int Page,
+    int PageSize,
+    int Total,
+    List<VacancyItem> Items
+);
+
+public record VacancyCreateDto
+{
+    public string Title { get; init; } = default!;
+    public string Recruiter { get; init; } = default!;
+    public string? Description { get; init; }
+    public string? Location { get; init; }
+    public VacancyStatus? Status { get; init; } 
+    public DateTime? PublishedOn { get; init; }
+}
+
+public record VacancyUpdateDto
+{
+    public string Title { get; init; } = default!;
+    public string Recruiter { get; init; } = default!;
+    public string? Description { get; init; }
+    public string? Location { get; init; }
+    public VacancyStatus? Status { get; init; } 
+    public DateTime? PublishedOn { get; init; } 
+}
+
+//   Mapping helpers
+
+public static class VacancyMapExtensions
+{
+    public static VacancyItem ToItem(this Vacancy v) =>
+        new(
+            v.Id,
+            v.Title,
+            v.Recruiter,
+            v.PublishedOn,
+            v.Description,
+            v.Location,
+            v.Status
+        );
+}
