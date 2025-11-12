@@ -4,6 +4,7 @@ using Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Infrastructure.Security;
 
 namespace Infrastructure;
 
@@ -21,8 +22,9 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IVacancyRepository, VacancyRepository>();
-        services.AddScoped<IUserRepository, UserRepository>(); // ← NUEVO
-
+        services.AddScoped<IUserRepository, UserRepository>(); 
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
         return services;
     }
+    
 }

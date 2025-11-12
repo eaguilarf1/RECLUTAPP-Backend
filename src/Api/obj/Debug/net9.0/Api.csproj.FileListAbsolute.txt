@@ -145,3 +145,5 @@ C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminari
 C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\obj\Debug\net9.0\Api.pdb
 C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\obj\Debug\net9.0\Api.genruntimeconfig.cache
 C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\obj\Debug\net9.0\ref\Api.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\api\bin\Debug\net9.0\BCrypt.Net-Next.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\api\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

@@ -7,4 +7,7 @@ public sealed class User
     public string Email { get; set; } = default!;
     public Role Role { get; set; } = Role.Candidate;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public string PasswordHash { get; set; } = default!;
+    public bool IsActive { get; set; } = true;
 }

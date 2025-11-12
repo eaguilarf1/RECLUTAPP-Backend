@@ -22,7 +22,6 @@ public class UserRepository(AppDbContext db) : IUserRepository
             query = query.Where(u => u.Role == role.Value);
 
         var total = await query.CountAsync(ct);
-
         var items = await query
             .OrderByDescending(u => u.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -32,8 +31,11 @@ public class UserRepository(AppDbContext db) : IUserRepository
         return (items, total);
     }
 
-    public Task<User?> GetAsync(Guid id, CancellationToken ct = default)
-        => db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+    public Task<User?> GetAsync(Guid id, CancellationToken ct = default) =>
+        db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+
+    public Task<User?> GetByEmailAsync(string email, CancellationToken ct = default) =>
+        db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, ct);
 
     public async Task<User> AddAsync(User user, CancellationToken ct = default)
     {
