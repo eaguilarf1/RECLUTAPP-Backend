@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Security;
 using System.Text;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -348,6 +350,98 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.MapGet("/me", async (
+    ClaimsPrincipal principal,
+    [FromServices] IUserRepository usersRepo,
+    CancellationToken ct
+) =>
+{
+    var sub = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+              ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    if (!Guid.TryParse(sub, out var id))
+        return Results.Unauthorized();
+
+    var user = await usersRepo.GetAsync(id, ct);
+    if (user is null || !user.IsActive)
+        return Results.Unauthorized();
+
+    return Results.Ok(user.ToAuthUser());
+})
+.RequireAuthorization();
+
+app.MapPut("/me", async (
+    ClaimsPrincipal principal,
+    [FromBody] MeUpdateDto dto,
+    [FromServices] IUserRepository usersRepo,
+    CancellationToken ct
+) =>
+{
+    var sub = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+              ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    if (!Guid.TryParse(sub, out var id))
+        return Results.Unauthorized();
+
+    var user = await usersRepo.GetAsync(id, ct);
+    if (user is null || !user.IsActive)
+        return Results.Unauthorized();
+
+    if (!string.IsNullOrWhiteSpace(dto.Email))
+    {
+        var email = dto.Email.Trim().ToLowerInvariant();
+        var existing = await usersRepo.GetByEmailAsync(email, ct);
+        if (existing is not null && existing.Id != id)
+            return Results.Conflict(new { message = "El correo ya está registrado." });
+        user.Email = email;
+    }
+
+    if (!string.IsNullOrWhiteSpace(dto.Name))
+        user.Name = dto.Name.Trim();
+
+    await usersRepo.UpdateAsync(user, ct);
+    return Results.NoContent();
+})
+.RequireAuthorization();
+
+app.MapPut("/me/password", async (
+    ClaimsPrincipal principal,
+    [FromBody] ChangePasswordDto dto,
+    [FromServices] IUserRepository usersRepo,
+    CancellationToken ct
+) =>
+{
+    var sub = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+              ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    if (!Guid.TryParse(sub, out var id))
+        return Results.Unauthorized();
+
+    var user = await usersRepo.GetAsync(id, ct);
+    if (user is null || !user.IsActive)
+        return Results.Unauthorized();
+
+    var current = dto.CurrentPassword?.Trim() ?? "";
+    var next = dto.NewPassword?.Trim() ?? "";
+
+    if (string.IsNullOrWhiteSpace(current) || string.IsNullOrWhiteSpace(next))
+        return Results.BadRequest(new { message = "Debe ingresar la contraseña actual y la nueva." });
+
+    if (!BCrypt.Net.BCrypt.Verify(current, user.PasswordHash))
+        return Results.BadRequest(new { message = "La contraseña actual no es correcta." });
+
+    if (next.Length < 6)
+        return Results.BadRequest(new { message = "La nueva contraseña debe tener al menos 6 caracteres." });
+
+    if (BCrypt.Net.BCrypt.Verify(next, user.PasswordHash))
+        return Results.BadRequest(new { message = "La nueva contraseña no puede ser igual a la actual." });
+
+    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(next);
+    await usersRepo.UpdateAsync(user, ct);
+    return Results.NoContent();
+})
+.RequireAuthorization();
+
 app.Run();
 
 public record VacancyItem(
@@ -405,6 +499,8 @@ public sealed record LoginDto(string Email, string Password);
 public sealed record RegisterDto(string Name, string Email, string Password);
 public sealed record AdminCreateUserDto(string Name, string Email, string Password, string Role);
 public sealed record AdminUpdateUserDto(string? Name, string? Email, string? Role, bool? IsActive);
+public sealed record MeUpdateDto(string? Name, string? Email);
+public sealed record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 public sealed record AuthUser(Guid Id, string Name, string Email, Role Role, DateTime CreatedAt);
 public sealed record AuthResponse(string Token, AuthUser User);
