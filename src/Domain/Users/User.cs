@@ -1,5 +1,11 @@
 namespace Domain.Users;
 
+public enum AuthProvider
+{
+    Local = 0,
+    Google = 1
+}
+
 public sealed class User
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -10,4 +16,7 @@ public sealed class User
 
     public string PasswordHash { get; set; } = default!;
     public bool IsActive { get; set; } = true;
+
+    public AuthProvider Provider { get; set; } = AuthProvider.Local;
+    public string? ProviderUserId { get; set; }
 }

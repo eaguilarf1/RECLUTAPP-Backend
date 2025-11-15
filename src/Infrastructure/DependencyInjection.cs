@@ -22,9 +22,17 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IVacancyRepository, VacancyRepository>();
-        services.AddScoped<IUserRepository, UserRepository>(); 
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        var googleSettings = new GoogleAuthSettings
+        {
+            ClientId = config["GoogleAuth:ClientId"] ?? string.Empty
+        };
+
+        services.AddSingleton(googleSettings);
+        services.AddScoped<GoogleTokenValidator>();
+
         return services;
     }
-    
 }

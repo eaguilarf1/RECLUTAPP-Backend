@@ -147,3 +147,9 @@ C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminari
 C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\obj\Debug\net9.0\ref\Api.dll
 C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\api\bin\Debug\net9.0\BCrypt.Net-Next.dll
 C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\api\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\bin\Debug\net9.0\Google.Apis.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\bin\Debug\net9.0\Google.Apis.Auth.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\bin\Debug\net9.0\Google.Apis.Core.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\bin\Debug\net9.0\Newtonsoft.Json.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\bin\Debug\net9.0\System.Management.dll
+C:\Users\edwar\OneDrive\Escritorio\Documentos U\Cursos\Décimo semestre\Seminario de tecnologías\RECLUTAPP\ReclutappBackend\src\Api\bin\Debug\net9.0\runtimes\win\lib\net7.0\System.Management.dll

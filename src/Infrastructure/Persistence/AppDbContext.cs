@@ -31,12 +31,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.HasKey(u => u.Id);
             b.Property(u => u.Name).HasMaxLength(150).IsRequired();
             b.Property(u => u.Email).HasMaxLength(200).IsRequired();
-            b.Property(u => u.PasswordHash).HasMaxLength(200).IsRequired(); // ← NUEVO
+            b.Property(u => u.PasswordHash).HasMaxLength(200).IsRequired();
             b.Property(u => u.Role).IsRequired();
             b.Property(u => u.IsActive).IsRequired();
             b.Property(u => u.CreatedAt).IsRequired();
+
+            b.Property(u => u.Provider)
+                .IsRequired()
+                .HasConversion<int>();
+
+            b.Property(u => u.ProviderUserId)
+                .HasMaxLength(200);
+
             b.HasIndex(u => u.Email).IsUnique();
         });
-
     }
 }

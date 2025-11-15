@@ -79,7 +79,8 @@ app.MapPost("/auth/register", async (
         Email = email,
         Role = Role.Candidate,
         PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password.Trim()),
-        IsActive = true
+        IsActive = true,
+        Provider = AuthProvider.Local
     };
 
     await usersRepo.AddAsync(user, ct);
@@ -103,6 +104,60 @@ app.MapPost("/auth/login", async (
     var ok = BCrypt.Net.BCrypt.Verify(dto.Password.Trim(), user.PasswordHash);
     if (!ok)
         return Results.Unauthorized();
+
+    var token = jwt.Create(user);
+    return Results.Ok(new AuthResponse(token, user.ToAuthUser()));
+});
+
+app.MapPost("/auth/google", async (
+    [FromBody] GoogleLoginRequest dto,
+    [FromServices] GoogleTokenValidator googleValidator,
+    [FromServices] IUserRepository usersRepo,
+    [FromServices] IJwtTokenService jwt,
+    CancellationToken ct
+) =>
+{
+    if (string.IsNullOrWhiteSpace(dto.IdToken))
+        return Results.BadRequest(new { message = "Token de Google inválido." });
+
+    GoogleUserInfo googleUser;
+    try
+    {
+        googleUser = await googleValidator.ValidateAsync(dto.IdToken);
+    }
+    catch
+    {
+        return Results.Unauthorized();
+    }
+
+    var email = googleUser.Email.Trim().ToLowerInvariant();
+    var user = await usersRepo.GetByEmailAsync(email, ct);
+
+    if (user is null)
+    {
+        user = new User
+        {
+            Name = googleUser.Name.Trim(),
+            Email = email,
+            Role = Role.Candidate,
+            Provider = AuthProvider.Google,
+            ProviderUserId = googleUser.Sub,
+            PasswordHash = string.Empty,
+            IsActive = true
+        };
+
+        await usersRepo.AddAsync(user, ct);
+    }
+    else
+    {
+        user.Provider = AuthProvider.Google;
+        user.ProviderUserId = googleUser.Sub;
+
+        if (!user.IsActive)
+            user.IsActive = true;
+
+        await usersRepo.UpdateAsync(user, ct);
+    }
 
     var token = jwt.Create(user);
     return Results.Ok(new AuthResponse(token, user.ToAuthUser()));
@@ -156,7 +211,8 @@ app.MapPost("/users", async (
         Email = email,
         Role = parsedRole,
         PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password.Trim()),
-        IsActive = true
+        IsActive = true,
+        Provider = AuthProvider.Local
     };
 
     await usersRepo.AddAsync(user, ct);
@@ -344,7 +400,8 @@ using (var scope = app.Services.CreateScope())
             Email = "admin@reclutapp.local",
             Role = Role.Admin,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
-            IsActive = true
+            IsActive = true,
+            Provider = AuthProvider.Local
         };
         await repo.AddAsync(seeded);
     }
@@ -501,6 +558,7 @@ public sealed record AdminCreateUserDto(string Name, string Email, string Passwo
 public sealed record AdminUpdateUserDto(string? Name, string? Email, string? Role, bool? IsActive);
 public sealed record MeUpdateDto(string? Name, string? Email);
 public sealed record ChangePasswordDto(string CurrentPassword, string NewPassword);
+public sealed record GoogleLoginRequest(string IdToken);
 
 public sealed record AuthUser(Guid Id, string Name, string Email, Role Role, DateTime CreatedAt);
 public sealed record AuthResponse(string Token, AuthUser User);
